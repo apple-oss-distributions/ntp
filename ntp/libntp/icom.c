@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/types.h>
 
 #include "ntp_tty.h"
+#include "l_stdlib.h"
 
 /*
  * Scraps
