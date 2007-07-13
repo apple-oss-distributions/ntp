@@ -28,13 +28,13 @@
 #endif
 
 #ifdef  DOSYNCTODR
-#if !defined(VMS)
-#include <sys/resource.h>
-#endif /* VMS */
+# if !defined(VMS)
+#  include <sys/resource.h>
+# endif /* VMS */
 #endif
 
 #if defined(VMS)
-#include <descrip.h>
+# include <descrip.h>
 #endif /* VMS */
 
 /*
@@ -52,21 +52,25 @@ static	char *key_file_name;
  * The name of the drift_comp file and the temporary.
  */
 static	char *stats_drift_file;
+static  int  drift_exists;
 static	char *stats_temp_file;
+int stats_write_period = 3600;	/* # of seconds between writes. */
+double stats_write_tolerance = 0;
+static double prev_drift_comp = 99999.;
 
 /*
  * Statistics file stuff
  */
 #ifndef NTP_VAR
-#ifndef SYS_WINNT
-#define NTP_VAR "/var/NTP/"		/* NOTE the trailing '/' */
-#else
-#define NTP_VAR "c:\\var\\ntp\\"		/* NOTE the trailing '\\' */
-#endif /* SYS_WINNT */
+# ifndef SYS_WINNT
+#  define NTP_VAR "/var/NTP/"		/* NOTE the trailing '/' */
+# else
+#  define NTP_VAR "c:\\var\\ntp\\"		/* NOTE the trailing '\\' */
+# endif /* SYS_WINNT */
 #endif
 
 #ifndef MAXPATHLEN
-#define MAXPATHLEN 256
+# define MAXPATHLEN 256
 #endif
 
 static	char statsdir[MAXPATHLEN] = NTP_VAR;
@@ -80,11 +84,53 @@ static FILEGEN sysstats;
 static FILEGEN cryptostats;
 #endif /* OPENSSL */
 
+/* derived from PM tool getsleep.c */
+#include <mach/mach_port.h>
+#include <mach/mach_interface.h>
+#include <mach/mach_init.h>
+
+#include <IOKit/pwr_mgt/IOPMLib.h>
+#include <IOKit/pwr_mgt/IOPM.h>
+
+static io_connect_t getFB() {
+	static io_connect_t fb;
+	
+	if (!fb) {
+		fb = IOPMFindPowerManagement(kIOMasterPortDefault);
+	}
+	return fb;
+}
+
+static unsigned long energy_saving() {
+	IOReturn err;
+	unsigned long min = 99;
+	io_connect_t fb = getFB();
+
+	if (fb) {
+		err = IOPMGetAggressiveness( fb, kPMMinutesToSleep, &min);
+		if (err == kIOReturnSuccess) {
+			if (min > 0) {
+				return min;
+			} else {
+				err = IOPMGetAggressiveness( fb, kPMMinutesToSpinDown, &min);
+				if (err == kIOReturnSuccess) {
+					return min;
+				}
+			}
+		}
+	}
+	return 0;
+}
 /*
  * This controls whether stats are written to the fileset. Provided
  * so that ntpdc can turn off stats when the file system fills up. 
  */
 int stats_control;
+
+/*
+ * Initial frequency offset later passed to the loopfilter.
+ */
+double	old_drift;
 
 /*
  * init_util - initialize the utilities
@@ -96,90 +142,79 @@ init_util(void)
 	stats_temp_file = 0;
 	key_file_name = 0;
 
-#define PEERNAME "peerstats"
-#define LOOPNAME "loopstats"
-#define CLOCKNAME "clockstats"
-#define RAWNAME "rawstats"
-#define STANAME "systats"
-#ifdef OPENSSL
-#define CRYPTONAME "cryptostats"
-#endif /* OPENSSL */
+	filegen_register(&statsdir[0], "peerstats", &peerstats);
 
-	peerstats.fp       = NULL;
-	peerstats.prefix   = &statsdir[0];
-	peerstats.basename = (char*)emalloc(strlen(PEERNAME)+1);
-	strcpy(peerstats.basename, PEERNAME);
-	peerstats.id       = 0;
-	peerstats.type     = FILEGEN_DAY;
-	peerstats.flag     = FGEN_FLAG_LINK; /* not yet enabled !!*/
-	filegen_register("peerstats", &peerstats);
-	
-	loopstats.fp       = NULL;
-	loopstats.prefix   = &statsdir[0];
-	loopstats.basename = (char*)emalloc(strlen(LOOPNAME)+1);
-	strcpy(loopstats.basename, LOOPNAME);
-	loopstats.id       = 0;
-	loopstats.type     = FILEGEN_DAY;
-	loopstats.flag     = FGEN_FLAG_LINK; /* not yet enabled !!*/
-	filegen_register("loopstats", &loopstats);
+	filegen_register(&statsdir[0], "loopstats", &loopstats);
 
-	clockstats.fp      = NULL;
-	clockstats.prefix  = &statsdir[0];
-	clockstats.basename = (char*)emalloc(strlen(CLOCKNAME)+1);
-	strcpy(clockstats.basename, CLOCKNAME);
-	clockstats.id      = 0;
-	clockstats.type    = FILEGEN_DAY;
-	clockstats.flag    = FGEN_FLAG_LINK; /* not yet enabled !!*/
-	filegen_register("clockstats", &clockstats);
+	filegen_register(&statsdir[0], "clockstats", &clockstats);
 
-	rawstats.fp      = NULL;
-	rawstats.prefix  = &statsdir[0];
-	rawstats.basename = (char*)emalloc(strlen(RAWNAME)+1);
-	strcpy(rawstats.basename, RAWNAME);
-	rawstats.id      = 0;
-	rawstats.type    = FILEGEN_DAY;
-	rawstats.flag    = FGEN_FLAG_LINK; /* not yet enabled !!*/
-	filegen_register("rawstats", &rawstats);
+	filegen_register(&statsdir[0], "rawstats", &rawstats);
 
-	sysstats.fp      = NULL;
-	sysstats.prefix  = &statsdir[0];
-	sysstats.basename = (char*)emalloc(strlen(STANAME)+1);
-	strcpy(sysstats.basename, STANAME);
-	sysstats.id      = 0;
-	sysstats.type    = FILEGEN_DAY;
-	sysstats.flag    = FGEN_FLAG_LINK; /* not yet enabled !!*/
-	filegen_register("sysstats", &sysstats);
+	filegen_register(&statsdir[0], "sysstats", &sysstats);
 
 #ifdef OPENSSL
-	cryptostats.fp	 = NULL;
-	cryptostats.prefix = &statsdir[0];
-	cryptostats.basename = (char*)emalloc(strlen(CRYPTONAME)+1);
-	strcpy(cryptostats.basename, CRYPTONAME);
-	cryptostats.id	 = 0;
-	cryptostats.type = FILEGEN_DAY;
-	cryptostats.flag = FGEN_FLAG_LINK; /* not yet enabled !!*/
-	filegen_register("cryptostats", &cryptostats);
+	filegen_register(&statsdir[0], "cryptostats", &cryptostats);
 #endif /* OPENSSL */
 
-#undef PEERNAME
-#undef LOOPNAME
-#undef CLOCKNAME
-#undef RAWNAME
-#undef STANAME
-#ifdef OPENSSL
-#undef CRYPTONAME
-#endif /* OPENSSL */
 }
 
+void
+save_drift_file(
+	int force
+	)
+{
+	FILE *fp;
+	static int skipped;
+	
+	if (!skipped)
+		force = 0;	/* Don't force a write if we never skipped one */
+	if (stats_drift_file != 0 && (force || !drift_exists || !energy_saving())) {
+		skipped = 0;
+		if ((fp = fopen(stats_temp_file, "w")) == NULL) {
+			msyslog(LOG_ERR, "can't open %s: %m",
+			    stats_temp_file);
+			return;
+		}
+		fprintf(fp, "%.3f\n", drift_comp * 1e6);
+		(void)fclose(fp);
+		/* atomic */
+#ifdef SYS_WINNT
+		(void) _unlink(stats_drift_file); /* rename semantics differ under NT */
+#endif /* SYS_WINNT */
+
+#ifndef NO_RENAME
+		(void) rename(stats_temp_file, stats_drift_file);
+#else
+        /* we have no rename NFS of ftp in use*/
+		if ((fp = fopen(stats_drift_file, "w")) == NULL) {
+			msyslog(LOG_ERR, "can't open %s: %m",
+			    stats_drift_file);
+			return;
+		}
+
+#endif
+	        drift_exists++;
+#if defined(VMS)
+		/* PURGE */
+		{
+			$DESCRIPTOR(oldvers,";-1");
+			struct dsc$descriptor driftdsc = {
+				strlen(stats_drift_file),0,0,stats_drift_file };
+
+			while(lib$delete_file(&oldvers,&driftdsc) & 1) ;
+		}
+#endif
+	} else {
+		skipped = 1;
+	}
+}
 
 /*
  * hourly_stats - print some interesting stats
  */
 void
-hourly_stats(void)
+write_stats(void)
 {
-	FILE *fp;
-
 #ifdef DOSYNCTODR
 	struct timeval tv;
 #if !defined(VMS)
@@ -260,42 +295,11 @@ hourly_stats(void)
 
 	
 	record_sys_stats();
-	if (stats_drift_file != 0) {
-		if ((fp = fopen(stats_temp_file, "w")) == NULL) {
-			msyslog(LOG_ERR, "can't open %s: %m",
-			    stats_temp_file);
-			return;
-		}
-		fprintf(fp, "%.3f\n", drift_comp * 1e6);
-		(void)fclose(fp);
-		/* atomic */
-#ifdef SYS_WINNT
-		(void) _unlink(stats_drift_file); /* rename semantics differ under NT */
-#endif /* SYS_WINNT */
-
-#ifndef NO_RENAME
-		(void) rename(stats_temp_file, stats_drift_file);
-#else
-        /* we have no rename NFS of ftp in use*/
-		if ((fp = fopen(stats_drift_file, "w")) == NULL) {
-			msyslog(LOG_ERR, "can't open %s: %m",
-			    stats_drift_file);
-			return;
-		}
-
-#endif
-
-#if defined(VMS)
-		/* PURGE */
-		{
-			$DESCRIPTOR(oldvers,";-1");
-			struct dsc$descriptor driftdsc = {
-				strlen(stats_drift_file),0,0,stats_drift_file };
-
-			while(lib$delete_file(&oldvers,&driftdsc) & 1) ;
-		}
-#endif
+	if ((u_long)(fabs(prev_drift_comp - drift_comp) * 1e9) <=
+	    (u_long)(fabs(stats_write_tolerance * drift_comp) * 1e9)) {
+	     return;
 	}
+	prev_drift_comp = drift_comp;
 }
 
 
@@ -310,7 +314,6 @@ stats_config(
 {
 	FILE *fp;
 	char *value;
-	double old_drift;
 	int len;
 
 	/*
@@ -381,21 +384,21 @@ stats_config(
 		 * missing or contains errors, tell the loop to reset.
 		 */
 		if ((fp = fopen(stats_drift_file, "r")) == NULL) {
-			loop_config(LOOP_DRIFTCOMP, 1e9);
+			old_drift = 1e9;
 			break;
 		}
 		if (fscanf(fp, "%lf", &old_drift) != 1) {
 			msyslog(LOG_ERR, "Frequency format error in %s", 
 			    stats_drift_file);
-			loop_config(LOOP_DRIFTCOMP, 1e9);
-			fclose(fp);
+			old_drift = 1e9;
 			break;
 		}
 		fclose(fp);
+		drift_exists++;
+		prev_drift_comp = old_drift / 1e6;
 		msyslog(LOG_INFO,
 		    "frequency initialized %.3f PPM from %s",
 			old_drift, stats_drift_file);
-		loop_config(LOOP_DRIFTCOMP, old_drift / 1e6);
 		break;
 	
 	    case STATS_STATSDIR:
@@ -535,7 +538,7 @@ record_loop_stats(
 	day = now.l_ui / 86400 + MJD_1900;
 	now.l_ui %= 86400;
 	if (loopstats.fp != NULL) {
-		fprintf(loopstats.fp, "%lu %s %.9f %.6f %.9f %.6f %d\n",
+		fprintf(loopstats.fp, "%lu %s %.9f %.3f %.9f %.6f %d\n",
 		    day, ulfptoa(&now, 3), offset, freq * 1e6, jitter,
 		    stability * 1e6, spoll);
 		fflush(loopstats.fp);

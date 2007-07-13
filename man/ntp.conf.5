@@ -1,7 +1,7 @@
 .\"
 .\" $FreeBSD: src/usr.sbin/ntp/doc/ntp.conf.5,v 1.16 2004/07/03 18:35:51 ru Exp $
 .\"
-.Dd January 13, 2000
+.Dd June 8, 2006
 .Dt NTP.CONF 5
 .Os
 .Sh NAME
@@ -49,7 +49,7 @@ provided in
 .Pa /usr/share/doc/ntp )
 contains an extended discussion of these options.
 In addition to the discussion of general
-.Sx Configuration Options ,
+.Sx Configuration Support ,
 there are sections describing the following supported functionality
 and the options used to control it:
 .Bl -bullet -offset indent
@@ -79,7 +79,7 @@ NTPv4.
 These commands have the same basic functions as in NTPv3 and
 in some cases new functions and new arguments.
 There are two
-classes of commands, configuration commands that configure a
+classes of commands: configuration commands that configure a
 persistent association with a remote server or peer or reference
 clock, and auxiliary commands that specify environmental variables
 that control various related operations.
@@ -104,6 +104,8 @@ in some weird and even destructive behavior.
 .Op Cm prefer
 .Op Cm minpoll Ar minpoll
 .Op Cm maxpoll Ar maxpoll
+.Op Cm noselect
+.Op Cm preempt
 .Xc
 .It Xo Ic peer Ar address
 .Op Cm key Ar key \&| Cm autokey
@@ -111,6 +113,7 @@ in some weird and even destructive behavior.
 .Op Cm prefer
 .Op Cm minpoll Ar minpoll
 .Op Cm maxpoll Ar maxpoll
+.Op Cm noselect
 .Xc
 .It Xo Ic broadcast Ar address
 .Op Cm key Ar key \&| Cm autokey
@@ -171,6 +174,7 @@ commands can be used to specify multiple local broadcast interfaces
 Note that local
 broadcast messages go only to the interface associated with the
 subnet specified, but multicast messages go to all interfaces.
+.Pp
 In broadcast mode the local server sends periodic broadcast
 messages to a client population at the
 .Ar address
@@ -202,6 +206,7 @@ The NTP multicast address
 means are taken to avoid spraying large areas of the Internet with
 these messages and causing a possibly massive implosion of replies
 at the sender.
+.Pp
 The
 .Ic manycastserver
 command specifies that the local server
@@ -227,7 +232,7 @@ Options:
 All packets sent to and received from the server or peer are to
 include authentication fields encrypted using the autokey scheme
 described in
-.Sx Authentication Options .
+.Sx Authentication Support .
 .It Cm burst
 when the server is reachable and at each poll interval, send a
 burst of eight packets instead of the usual one packet.
@@ -277,11 +282,17 @@ minimum poll interval defaults to 6 (64 s), but can be decreased by
 the
 .Cm minpoll
 option to a lower limit of 4 (16 s).
+.It Cm noselect
+Marks the server as unused, except for display purposes. The server is discarded by the selection algorithm. This option is valid only with the server and peer commands.
+.It Cm preempt
+Specifies the association as preemptable rather than the default persistent. This option is valied only with the server command.
 .It Cm prefer
 Marks the server as preferred.
 All other things being equal,
 this host will be chosen for synchronization among a set of
 correctly operating hosts.
+.It Cm true
+Force the association to assume truechimer status; that is, always survive the selection and clustering algorithms. This option can be used with any association, but is most useful for reference clocks with large jitter on the serial port and precision pulse-per-second (PPS) signals. Caution: this option defeats the algorithms designed to cast out falsetickers and can allow these sources to set the system clock. This option is valid only with the server and peer commands.
 See the
 .Qq "Mitigation Rules and the prefer Keyword"
 page for further
@@ -319,7 +330,7 @@ Note that, in order
 to avoid accidental or malicious disruption in this mode, both the
 server and client should operate using symmetric-key or public-key
 authentication as described in
-.Sx Authentication Options .
+.Sx Authentication Support .
 .It Ic manycastserver Ar address ...
 This command enables reception of manycast client messages to
 the multicast group address(es) (type m) specified.
@@ -332,7 +343,7 @@ Note that, in order to avoid
 accidental or malicious disruption in this mode, both the server
 and client should operate using symmetric-key or public-key
 authentication as described in
-.Sx Authentication Options .
+.Sx Authentication Support .
 .It Ic multicastclient Ar address ...
 This command enables reception of multicast server messages to
 the multicast group address(es) (type m) specified.
@@ -345,7 +356,7 @@ Note that,
 in order to avoid accidental or malicious disruption in this mode,
 both the server and client should operate using symmetric-key or
 public-key authentication as described in
-.Sx Authentication Options .
+.Sx Authentication Support .
 .El
 .Sh Authentication Support
 Authentication support allows the NTP client to verify that the
@@ -517,6 +528,7 @@ file.
 Once installed, the
 configure and build process automatically detects it and compiles
 the routines required.
+.Pp
 The Autokey scheme has several modes of
 operation corresponding to the various NTP modes supported.
 RSA

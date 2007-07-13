@@ -41,7 +41,8 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MT /W4 /GX /O2 /I "." /I "..\include" /I "..\..\..\include" /I "\openssl-0.9.7b\inc32" /D "NDEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__STDC__" /D "SYS_WINNT" /D "HAVE_CONFIG_H" /D _WIN32_WINNT=0x400 /YX"windows.h" /FD /c
+# ADD CPP /nologo /MD /W4 /GX /O2 /I "." /I "..\include" /I "..\..\..\include" /I "\openssl-0.9.7d\inc32" /D "NDEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__STDC__" /D "SYS_WINNT" /D "HAVE_CONFIG_H" /D _WIN32_WINNT=0x400 /FD /c
+# SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +65,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W4 /Gm /GX /ZI /Od /I "." /I "..\include" /I "..\..\..\include" /I "\openssl-0.9.7b\inc32" /FI"windows.h" /D "_DEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__STDC__" /D "SYS_WINNT" /D "HAVE_CONFIG_H" /D _WIN32_WINNT=0x400 /FR /YX"windows.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W4 /Gm /GX /ZI /Od /I "." /I "..\include" /I "..\..\..\include" /I "\openssl-0.9.7d\inc32" /D "_DEBUG" /D "_LIB" /D "WIN32" /D "_MBCS" /D "__STDC__" /D "SYS_WINNT" /D "HAVE_CONFIG_H" /D _WIN32_WINNT=0x400 /FR /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -121,19 +122,11 @@ SOURCE=..\..\..\libntp\authusekey.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\libntp\binio.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\libntp\buftvtots.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\..\libntp\caljulian.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\libntp\calleapwhen.c
 # End Source File
 # Begin Source File
 
@@ -154,6 +147,10 @@ SOURCE=..\..\..\libntp\clocktypes.c
 # Begin Source File
 
 SOURCE=..\..\..\libntp\decodenetnum.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\dnslookup.c
 # End Source File
 # Begin Source File
 
@@ -189,10 +186,6 @@ SOURCE=..\..\..\libntp\getopt.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\libntp\gpstolfp.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\libntp\hextoint.c
 # End Source File
 # Begin Source File
@@ -205,11 +198,15 @@ SOURCE=..\..\..\libntp\humandate.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\libntp\ieee754io.c
+SOURCE=..\..\..\libisc\inet_aton.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\..\libisc\inet_ntop.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\libisc\inet_pton.c
 # End Source File
 # Begin Source File
 
@@ -237,10 +234,6 @@ SOURCE=..\..\..\libntp\lib_strbuf.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\log.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\libntp\machines.c
 # End Source File
 # Begin Source File
@@ -254,14 +247,6 @@ SOURCE=..\..\..\libisc\mem.c
 # Begin Source File
 
 SOURCE=..\..\..\libntp\memmove.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\mexit.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\libntp\mfp_mul.c
 # End Source File
 # Begin Source File
 
@@ -301,7 +286,19 @@ SOURCE=..\libisc\net.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\libisc\netaddr.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\libntp\netof.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\libisc\netscope.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\libntp\ntp_random.c
 # End Source File
 # Begin Source File
 
@@ -333,10 +330,6 @@ SOURCE=.\randfile.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\libntp\ranny.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\libntp\recvbuff.c
 # End Source File
 # Begin Source File
@@ -346,6 +339,10 @@ SOURCE=..\..\..\libntp\refnumtoa.c
 # Begin Source File
 
 SOURCE=.\SetSystemTime.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\libisc\sockaddr.c
 # End Source File
 # Begin Source File
 
@@ -457,15 +454,15 @@ SOURCE=..\..\..\include\iosignal.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\include\isc\ipv6.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\include\l_stdlib.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\..\libntp\lib_strbuf.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\log.h
 # End Source File
 # Begin Source File
 
@@ -477,7 +474,15 @@ SOURCE=..\include\isc\net.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\include\isc\netaddr.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\include\netdb.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\include\isc\netscope.h
 # End Source File
 # Begin Source File
 
@@ -521,7 +526,15 @@ SOURCE=..\..\..\include\ntp_proto.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\..\include\ntp_random.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\..\include\ntp_refclock.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\include\ntp_rfc2553.h
 # End Source File
 # Begin Source File
 

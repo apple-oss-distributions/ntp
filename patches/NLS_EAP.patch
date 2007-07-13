@@ -1,20 +1,20 @@
-diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpd/ntp_config.c ./ntpd/ntp_config.c
---- ../ntp-original/ntp/ntpd/ntp_config.c	2003-10-07 01:35:14.000000000 -0700
-+++ ./ntpd/ntp_config.c	2005-09-08 11:41:06.000000000 -0700
-@@ -19,6 +19,7 @@
- #include "ntp_cmdargs.h"
+diff -up -r ../ntp-4.2.2+orig/ntpd/ntp_config.c ./ntpd/ntp_config.c
+--- ../ntp-4.2.2+orig/ntpd/ntp_config.c	2006-06-06 13:16:38.000000000 -0700
++++ ./ntpd/ntp_config.c	2006-06-07 11:43:26.000000000 -0700
+@@ -20,6 +20,7 @@
+ #include <isc/result.h>
  
  #include <stdio.h>
 +#include <netdb.h>
  #include <ctype.h>
  #ifdef HAVE_SYS_PARAM_H
  #include <sys/param.h>
-diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpd/ntp_peer.c ./ntpd/ntp_peer.c
---- ../ntp-original/ntp/ntpd/ntp_peer.c	2003-08-20 20:31:36.000000000 -0700
-+++ ./ntpd/ntp_peer.c	2005-09-08 11:41:44.000000000 -0700
-@@ -39,6 +39,9 @@
-  * received after the change back to BCLIENT mode sets the clock.
-  */
+diff -up -r ../ntp-4.2.2+orig/ntpd/ntp_peer.c ./ntpd/ntp_peer.c
+--- ../ntp-4.2.2+orig/ntpd/ntp_peer.c	2006-06-06 13:16:42.000000000 -0700
++++ ./ntpd/ntp_peer.c	2006-06-07 11:43:26.000000000 -0700
+@@ -40,6 +40,9 @@
+ #define AM_MODES	7	/* number of rows and columns */
+ #define NO_PEER		0	/* action when no peer is found */
  
 +#ifdef __APPLE__
 +__private_extern__
@@ -22,19 +22,19 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpd/ntp_peer.c ./ntpd/ntp_p
  int AM[AM_MODES][AM_MODES] = {
  /*	{ UNSPEC,   ACTIVE,     PASSIVE,    CLIENT,     SERVER,     BCAST } */
  
-diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpd/ntpd.c ./ntpd/ntpd.c
---- ../ntp-original/ntp/ntpd/ntpd.c	2003-07-17 03:27:28.000000000 -0700
-+++ ./ntpd/ntpd.c	2005-09-08 11:41:54.000000000 -0700
-@@ -632,7 +632,7 @@
+diff -up -r ../ntp-4.2.2+orig/ntpd/ntpd.c ./ntpd/ntpd.c
+--- ../ntp-4.2.2+orig/ntpd/ntpd.c	2006-06-06 13:16:46.000000000 -0700
++++ ./ntpd/ntpd.c	2006-06-07 11:44:38.000000000 -0700
+@@ -248,7 +248,7 @@ init_logging(char *name)
  #endif	/* !SYS_WINNT && !VMS */
  
  	NLOG(NLOG_SYSINFO) /* conditional if clause for conditional syslog */
 -		msyslog(LOG_NOTICE, "%s", Version);
 +		msyslog(LOG_INFO, "%s", Version);
+ }
  
- #ifdef SYS_WINNT
- 	/* GMS 1/18/1997
-@@ -691,8 +691,10 @@
+ #ifdef SIM
+@@ -636,8 +636,10 @@ ntpdmain(
  	/*
  	 * lock the process into memory
  	 */
@@ -45,63 +45,66 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpd/ntpd.c ./ntpd/ntpd.c
  #else /* not (HAVE_MLOCKALL && MCL_CURRENT && MCL_FUTURE) */
  # ifdef HAVE_PLOCK
  #  ifdef PROCLOCK
-@@ -1074,7 +1076,7 @@
+@@ -1003,7 +1005,7 @@ finish(
  	)
  {
  
 -	msyslog(LOG_NOTICE, "ntpd exiting on signal %d", sig);
 +	msyslog(LOG_INFO, "ntpd exiting on signal %d", sig);
- 
- 	switch (sig)
- 	{
-diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/Makefile.in ./ntpdate/Makefile.in
---- ../ntp-original/ntp/ntpdate/Makefile.in	2003-10-15 02:02:01.000000000 -0700
-+++ ./ntpdate/Makefile.in	2005-09-08 11:47:31.000000000 -0700
-@@ -174,8 +174,9 @@
- bin_PROGRAMS = ntpdate$(EXEEXT)
+ 	write_stats();
+ #ifdef HAVE_DNSREGISTRATION
+ 	if (mdns != NULL)
+diff -up -r ../ntp-4.2.2+orig/ntpdate/Makefile.in ./ntpdate/Makefile.in
+--- ../ntp-4.2.2+orig/ntpdate/Makefile.in	2006-06-06 13:24:14.000000000 -0700
++++ ./ntpdate/Makefile.in	2006-06-07 13:40:38.000000000 -0700
+@@ -46,6 +46,7 @@ bin_PROGRAMS = ntpdate$(EXEEXT)
+ EXTRA_PROGRAMS = ntptimeset$(EXEEXT)
+ DIST_COMMON = README $(noinst_HEADERS) $(srcdir)/../bincheck.mf \
+ 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
++SOURCES = $(ntpdate_SOURCES) $(ntptimeset_SOURCES)
+ subdir = ntpdate
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+ am__aclocal_m4_deps = $(top_srcdir)/m4/define_dir.m4 \
+@@ -60,8 +61,9 @@ CONFIG_CLEAN_FILES =
+ am__installdirs = "$(DESTDIR)$(bindir)"
+ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
  PROGRAMS = $(bin_PROGRAMS)
- 
 -ntpdate_SOURCES = ntpdate.c
 -ntpdate_OBJECTS = ntpdate$U.$(OBJEXT)
-+ntpdate_SOURCES = ntpdate.c ntptime_config.c
++ntpdate_SOURCES = ntpdate.c nettime_config.c
 +am_ntpdate_OBJECTS = ntpdate$U.$(OBJEXT) ntptime_config$U.$(OBJEXT)
 +ntpdate_OBJECTS = $(am_ntpdate_OBJECTS)
  ntpdate_LDADD = $(LDADD)
  ntpdate_DEPENDENCIES = version.o ../libntp/libntp.a
- ntpdate_LDFLAGS =
-@@ -196,12 +197,12 @@
+ am_ntptimeset_OBJECTS = ntptimeset$U.$(OBJEXT) \
+@@ -76,8 +78,7 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUD
  	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
  CCLD = $(CC)
  LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+-SOURCES = ntpdate.c $(ntptimeset_SOURCES)
 -DIST_SOURCES = ntpdate.c $(ntptimeset_SOURCES)
 +DIST_SOURCES = $(ntpdate_SOURCES) $(ntptimeset_SOURCES)
  HEADERS = $(noinst_HEADERS)
- 
- DIST_COMMON = README $(noinst_HEADERS) $(srcdir)/Makefile.in \
- 	Makefile.am
--SOURCES = ntpdate.c $(ntptimeset_SOURCES)
-+SOURCES = $(ntpdate_SOURCES) $(ntptimeset_SOURCES)
- 
- all: all-am
- 
-diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/ntpdate.c
---- ../ntp-original/ntp/ntpdate/ntpdate.c	2003-07-17 03:27:30.000000000 -0700
-+++ ./ntpdate/ntpdate.c	2005-09-08 17:05:13.000000000 -0700
-@@ -324,10 +324,11 @@
+ ETAGS = etags
+ CTAGS = ctags
+diff -up -r ../ntp-4.2.2+orig/ntpdate/ntpdate.c ./ntpdate/ntpdate.c
+--- ../ntp-4.2.2+orig/ntpdate/ntpdate.c	2006-06-06 13:16:59.000000000 -0700
++++ ./ntpdate/ntpdate.c	2006-06-07 11:45:43.000000000 -0700
+@@ -337,10 +337,11 @@ ntpdatemain (
  	l_fp tmp;
  	int errflg;
  	int c;
 +	char *cfgpath;
-         int nfound;
+ 	int nfound;
  
  #ifdef HAVE_NETINFO
 -	ni_namelist *netinfoservers;
-+	ni_namelist *netinfoservers = 0;
++	ni_namelist *netinfoservers = NULL;
  #endif
  #ifdef SYS_WINNT
  	HANDLE process_handle;
-@@ -351,13 +352,14 @@
- #endif
+@@ -370,13 +371,14 @@ ntpdatemain (
+ 	}
  
  	errflg = 0;
 +	cfgpath = 0;
@@ -116,7 +119,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/
  		switch (c)
  		{
  		case '4':
-@@ -379,6 +381,9 @@
+@@ -398,6 +400,9 @@ ntpdatemain (
  			never_step++;
  			always_step = 0;
  			break;
@@ -126,7 +129,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/
  		case 'd':
  			++debug;
  			break;
-@@ -455,7 +460,7 @@
+@@ -474,7 +479,7 @@ ntpdatemain (
  	
  	if (errflg) {
  		(void) fprintf(stderr,
@@ -135,7 +138,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/
  		    progname);
  		exit(2);
  	}
-@@ -491,13 +496,19 @@
+@@ -515,13 +520,19 @@ ntpdatemain (
  	}
  
  	if (debug || verbose)
@@ -157,7 +160,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/
  #endif
  
  	for ( ; ntp_optind < argc; ntp_optind++)
-@@ -509,6 +520,13 @@
+@@ -533,6 +544,13 @@ ntpdatemain (
  		    *netinfoservers->ni_namelist_val ) {
  			u_int servercount = 0;
  			while (servercount < netinfoservers->ni_namelist_len) {
@@ -171,7 +174,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/
  				if (debug) msyslog(LOG_DEBUG,
  						   "Adding time server %s from NetInfo configuration.",
  						   netinfoservers->ni_namelist_val[servercount]);
-@@ -1284,14 +1302,14 @@
+@@ -1305,14 +1323,14 @@ clock_adjust(void)
  
  	if (dostep) {
  		if (simple_query || l_step_systime(&server->offset)) {
@@ -188,9 +191,9 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntpdate.c ./ntpdate/
  				stoa(&server->srcadr),
  				lfptoa(&server->offset, 6));
  		}
-diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntptime_config.c ./ntpdate/ntptime_config.c
---- ../ntp-original/ntp/ntpdate/ntptime_config.c	2003-07-17 03:27:30.000000000 -0700
-+++ ./ntpdate/ntptime_config.c	2005-09-08 16:44:09.000000000 -0700
+diff -up -r ../ntp-4.2.2+orig/ntpdate/ntptime_config.c ./ntpdate/ntptime_config.c
+--- ../ntp-4.2.2+orig/ntpdate/ntptime_config.c	2004-02-24 21:58:18.000000000 -0800
++++ ./ntpdate/ntptime_config.c	2006-06-07 11:43:26.000000000 -0700
 @@ -21,6 +21,7 @@
  #include "ntp_stdlib.h"
  
@@ -199,7 +202,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntptime_config.c ./n
  #include <signal.h>
  #include <ctype.h>
  
-@@ -200,8 +201,10 @@
+@@ -200,8 +201,10 @@ M
  
  	if ((fp = fopen(FindConfig(config_file), "r")) == NULL)
  	{
@@ -210,7 +213,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntptime_config.c ./n
  #ifdef SYS_WINNT
  		/* Under WinNT try alternate_config_file name, first NTP.CONF, then NTP.INI */
  
-@@ -382,6 +386,7 @@
+@@ -382,6 +385,7 @@ M
  	    emalloc(sys_numservers * sizeof(struct server *));
  	for(i=0;i<sys_numservers;i++) {
  		sys_servers[i] = srvlist;
@@ -218,7 +221,7 @@ diff --exclude=cscope.out -Naur ../ntp-original/ntp/ntpdate/ntptime_config.c ./n
  		srvlist = srvlist->next_server;
  	}
  }
-@@ -523,6 +528,16 @@
+@@ -523,6 +527,16 @@ getnetnum(
  	}
  
  	if (i < 4) {
