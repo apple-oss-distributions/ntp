@@ -241,10 +241,10 @@ main(
 	char	*grpkey = NULL;	/* identity extension */
 	int	nid;		/* X509 digest/signature scheme */
 	FILE	*fstr = NULL;	/* file handle */
+    char	groupbuf[MAXHOSTNAME + 1];
 #define iffsw   HAVE_OPT(ID_KEY)
 #endif /* OPENSSL */
 	char	hostbuf[MAXHOSTNAME + 1];
-	char	groupbuf[MAXHOSTNAME + 1];
 
 	progname = argv[0];
 
@@ -260,6 +260,8 @@ main(
 	ssl_check_version();
 	fprintf(stderr, "Using OpenSSL version %lx\n", SSLeay());
 #endif /* OPENSSL */
+
+	ntp_crypto_srandom();
 
 	/*
 	 * Process options, initialize host name and timestamp.
@@ -713,17 +715,24 @@ gen_md5(
 	ntp_srandom((u_long)epoch);
 	for (i = 1; i <= MD5KEYS; i++) {
 		for (j = 0; j < MD5SIZE; j++) {
-			int temp;
+			u_char temp;
 
 			while (1) {
-				temp = ntp_random() & 0xff;
+				int rc;
+
+				rc = ntp_crypto_random_buf(
+				    &temp, sizeof(temp));
+				if (-1 == rc) {
+					fprintf(stderr, "ntp_crypto_random_buf() failed.\n");
+					exit (-1);
+				}
 				if (temp == '#')
 					continue;
 
 				if (temp > 0x20 && temp < 0x7f)
 					break;
 			}
-			md5key[j] = (u_char)temp;
+			md5key[j] = temp;
 		}
 		md5key[j] = '\0';
 		fprintf(str, "%2d MD5 %s  # MD5 key\n", i,
