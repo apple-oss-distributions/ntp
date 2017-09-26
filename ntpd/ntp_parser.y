@@ -78,6 +78,7 @@
 %token	<Integer>	T_Automax
 %token	<Integer>	T_Average
 %token	<Integer>	T_Bclient
+%token	<Integer>	T_Bcpollbstep
 %token	<Integer>	T_Beacon
 %token	<Integer>	T_Broadcast
 %token	<Integer>	T_Broadcastclient
@@ -645,19 +646,20 @@ tos_option
 	;
 
 tos_option_int_keyword
-	:	T_Ceiling
+	:	T_Bcpollbstep
+	|	T_Beacon
+	|	T_Ceiling
 	|	T_Floor
+	|	T_Maxclock
+	|	T_Minclock
+	|	T_Minsane
 	|	T_Orphan
 	|	T_Orphanwait
-	|	T_Minsane
-	|	T_Beacon
 	;
 
 tos_option_dbl_keyword
 	:	T_Mindist
 	|	T_Maxdist
-	|	T_Minclock
-	|	T_Maxclock
 	;
 
 
@@ -801,7 +803,7 @@ access_control_command
 						  lex_current()->curpos.nline);
 			APPEND_G_FIFO(cfgt.restrict_opts, rn);
 		}
-	|	T_Restrict ip_address T_Mask ip_address ac_flag_list
+	|	T_Restrict address T_Mask ip_address ac_flag_list
 		{
 			restrict_node *rn;
 
